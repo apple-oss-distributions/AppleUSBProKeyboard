@@ -1,8 +1,8 @@
 /*
 	File:		AppleUSBProKbd.c
 	Contains:	Driver for second Apple Pro USB Keyboard interface (multimedia keys)
-	Version:	1.8.1
-	Copyright:	© 2000-2001 by Apple, all rights reserved.
+	Version:	2.0.0d1
+	Copyright:	© 2000-2002 by Apple, all rights reserved.
 
 	File Ownership:
 
@@ -15,7 +15,7 @@
 		(JG)	Jason Giles
 
 	Change History (most recent first):
-
+		 <5>     3/14/02	AW		Change version number to conform to new standard
 		 <4>	03/13/01	JG		Don't auto-repeat on the mute or eject keys. Fix incorrect plist
 									info (matching to proper version of USB, made entries that
 									somehow became reals into integers).
@@ -76,7 +76,7 @@ OSDefineMetaClassAndStructors( AppleUSBProKbd, IOHIKeyboard )
 
 bool AppleUSBProKbd::start( IOService * provider )
 {
-    IOReturn			err;
+    IOReturn			err = kIOReturnSuccess;
 
 	// Reset key state flags.
 
@@ -621,6 +621,8 @@ UInt32 AppleUSBProKbd::FindKeyboardsAndGetModifiers()
 	OSDictionary	*matchingDictionary = NULL;
 	IOHIKeyboard	*device 			= NULL;
 	Boolean 		value				= false;
+	OSObject 	*adbProperty;
+	const char 	*adbKey;
 	
 	
 	mEventFlags = 0;
@@ -648,6 +650,15 @@ UInt32 AppleUSBProKbd::FindKeyboardsAndGetModifiers()
 	//
 	while( (device = (IOHIKeyboard*) iterator->getNextObject()) )
 	{		
+		//Ignore the eventFlags of non-keyboard ADB devices such as audio buttons
+		adbProperty = device->getProperty("ADB Match");
+		if (adbProperty)
+		{
+		    adbKey = ((OSString *)adbProperty)->getCStringNoCopy();
+		    if( *adbKey != '2' )	//If not a keyboard
+			continue;
+		}
+
 		value = false;
 		
 		// Save the caps lock state. If more than one keyboard has it down, that's fine -- we
